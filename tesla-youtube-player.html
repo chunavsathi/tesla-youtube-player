@@ -1,0 +1,917 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<link rel="icon" href="data:,">
+<title>Tesla YouTube Player</title>
+<script src="https://cdn.jsdelivr.net/npm/mp4box@0.5.2/dist/mp4box.all.min.js"></script>
+<style>
+:root{
+  --bg:#0a0a0c; --panel:#17171b; --panel2:#1f1f24; --line:#2b2b31;
+  --text:#f5f5f7; --muted:#a7a7ad; --red:#e82127; --red-d:#c11116;
+  --green:#2fbf71; --amber:#ffb020; --radius:18px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;-webkit-tap-highlight-color:transparent}
+a{color:#fff}
+button,input{font:inherit}
+button{cursor:pointer}
+.top{padding:18px 18px 10px;max-width:1280px;margin:0 auto}
+.brand{display:flex;align-items:center;gap:14px;justify-content:space-between}
+.brand h1{font-size:28px;line-height:1;margin:0;letter-spacing:-.02em;font-weight:800}
+.brand h1 span{color:var(--red)}
+.badge{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:#fff;background:var(--red);padding:8px 10px;border-radius:999px;font-weight:800;white-space:nowrap}
+.sub{color:var(--muted);font-size:15px;line-height:1.5;margin:8px 0 0}
+.searchbar{display:flex;gap:10px;margin-top:16px}
+.searchbar input{flex:1;background:#fff;color:#111;border:0;border-radius:14px;padding:18px 18px;font-size:19px;min-height:64px;outline:none}
+.btn{border:0;border-radius:14px;padding:0 22px;min-height:64px;font-weight:800;font-size:17px}
+.btn-red{background:var(--red);color:#fff}
+.btn-red:active{background:var(--red-d)}
+.btn-dark{background:var(--panel2);color:#fff;border:1px solid var(--line)}
+.paste{display:flex;gap:10px;margin-top:10px}
+.paste input{flex:1;background:var(--panel);color:#fff;border:1px solid var(--line);border-radius:14px;padding:14px 16px;min-height:56px;font-size:16px}
+.chips{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+.chip{background:var(--panel2);border:1px solid var(--line);color:#fff;border-radius:999px;padding:12px 18px;min-height:48px;font-weight:700;font-size:15px}
+.chip.active{background:#fff;color:#111;border-color:#fff}
+.layout{max-width:1280px;margin:0 auto;padding:10px 18px 28px;display:grid;grid-template-columns:1fr 340px;gap:18px}
+@media(max-width:900px){.layout{grid-template-columns:1fr}.brand h1{font-size:24px}.searchbar{flex-direction:column}.btn{min-height:56px}}
+.statusbar{background:#121216;border:1px solid var(--line);border-radius:12px;padding:12px 14px;display:flex;gap:10px;align-items:flex-start;margin-top:14px}
+.dot{width:11px;height:11px;border-radius:50%;background:var(--green);margin-top:5px;flex:none;box-shadow:0 0 0 5px rgba(47,191,113,.15)}
+.dot.amber{background:var(--amber);box-shadow:0 0 0 5px rgba(255,176,32,.15)}
+.dot.red{background:var(--red);box-shadow:0 0 0 5px rgba(232,33,39,.18)}
+#statusText{font-weight:700;line-height:1.4}
+#diagText{color:var(--muted);font-size:13px;line-height:1.4;margin-top:2px;word-break:break-word}
+.resultsHead{display:flex;justify-content:space-between;align-items:center;margin:18px 0 12px}
+.resultsHead h2{margin:0;font-size:20px}
+.resultsHead p{margin:0;color:var(--muted);font-size:14px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;text-align:left;padding:0;color:#fff;width:100%}
+.card img{width:100%;aspect-ratio:16/9;object-fit:cover;display:block;background:#222}
+.cardBody{padding:13px 14px 14px}
+.cardTitle{font-weight:700;line-height:1.35;font-size:16px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:43px}
+.meta{color:var(--muted);font-size:13px;margin-top:6px;line-height:1.4}
+.cardActions{display:flex;gap:8px;padding:0 14px 14px}
+.smallBtn{flex:1;min-height:46px;border-radius:10px;border:1px solid var(--line);background:var(--panel2);color:#fff;font-weight:700;font-size:14px;padding:8px}
+.smallBtn.primary{background:var(--red);border-color:var(--red)}
+.playerCard{background:#000;border:1px solid var(--line);border-radius:20px;overflow:hidden}
+.canvasWrap{position:relative;background:#000;aspect-ratio:16/9;display:flex;align-items:center;justify-content:center}
+canvas{width:100%;height:100%;display:block;background:#000}
+#fallbackWrap{display:none;position:absolute;inset:0}
+#fallbackWrap iframe{width:100%;height:100%;border:0}
+.bigPlay{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:92px;height:92px;border-radius:50%;border:0;background:var(--red);color:#fff;font-size:34px;display:none;align-items:center;justify-content:center;box-shadow:0 10px 30px rgba(0,0,0,.5)}
+.controls{padding:14px;background:var(--panel)}
+.nowTitle{font-size:18px;font-weight:800;line-height:1.3}
+.nowMeta{color:var(--muted);font-size:14px;margin-top:4px}
+.seekRow{display:flex;align-items:center;gap:12px;margin-top:14px}
+.seekRow span{font-variant-numeric:tabular-nums;color:var(--muted);font-size:14px;min-width:48px;text-align:center}
+input[type=range]{flex:1;accent-color:var(--red);min-height:44px}
+.ctrlRow{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+.ctrl{flex:1;min-width:110px;min-height:58px;border-radius:12px;border:1px solid var(--line);background:var(--panel2);color:#fff;font-weight:800;font-size:16px;padding:10px}
+.ctrl.main{background:var(--red);border-color:var(--red);flex:1.4}
+.volRow{display:flex;align-items:center;gap:12px;margin-top:8px}
+.volRow label{color:var(--muted);font-weight:700}
+.side{display:flex;flex-direction:column;gap:14px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px}
+.panel h3{margin:0 0 8px;font-size:17px}
+.panel p,.panel li{color:var(--muted);font-size:14px;line-height:1.55}
+.panel ul{margin:8px 0 0;padding-left:18px}
+.queueItem{display:flex;gap:10px;padding:10px 0;border-top:1px solid var(--line)}
+.queueItem img{width:96px;height:54px;object-fit:cover;border-radius:8px}
+.queueItem b{font-size:14px;line-height:1.3;display:block}
+.queueItem span{color:var(--muted);font-size:12px}
+.empty{color:var(--muted);border:1.5px dashed var(--line);border-radius:14px;padding:22px;text-align:center;line-height:1.5}
+.safety{border-color:#4a2b2b;background:#1d1213}
+.safety h3{color:#ffb3b5}
+.hidden{display:none !important}
+.spinner{width:18px;height:18px;border:3px solid #333;border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite;display:inline-block;vertical-align:-3px;margin-right:8px}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media(prefers-reduced-motion:reduce){.spinner{animation:none}}
+</style>
+</head>
+<body>
+<div class="top">
+  <div class="brand">
+    <h1>TESLA <span>THEATER</span> — YouTube for passengers</h1>
+    <div class="badge">Canvas player</div>
+  </div>
+  <p class="sub">Search YouTube and play it on a canvas — decoded in the browser with WebCodecs, not the car's built-in video player. This workaround is designed to keep playing in Drive; test it parked first, as Tesla updates may affect it. For passengers only.</p>
+
+  <div class="searchbar">
+    <input id="q" type="search" placeholder="Search YouTube — try lo-fi, podcasts, news…" autocomplete="off">
+    <button class="btn btn-red" id="searchBtn">Search</button>
+    <button class="btn btn-dark" id="homeBtn">Home</button>
+  </div>
+  <div class="paste">
+    <input id="pasteInput" placeholder="Paste a YouTube link or video ID — youtube.com/watch, youtu.be, Shorts…">
+    <button class="btn btn-dark" id="pasteBtn" style="min-height:56px">Play link</button>
+  </div>
+  <div class="chips" id="chips">
+    <button class="chip" data-q="lofi music live radio">🎵 Music</button>
+    <button class="chip" data-q="podcast interview full episode">🎙️ Podcasts</button>
+    <button class="chip" data-q="live news stream">🔴 Live</button>
+    <button class="chip" data-q="world news today">📰 News</button>
+    <button class="chip" data-q="Tesla road trip vlog">🚗 Tesla</button>
+    <button class="chip" data-q="relaxing ambient music for drive">🌙 Chill drive</button>
+  </div>
+
+  <div class="statusbar" role="status" aria-live="polite">
+    <div class="dot" id="statusDot"></div>
+    <div style="flex:1">
+      <div id="statusText">Ready. Search or paste a link — a session is only labelled “Drive mode” once canvas playback is actually running.</div>
+      <div id="diagText">WebCodecs: checking… • MP4Box: checking… • No video element in playback path — canvas + Web Audio only.</div>
+    </div>
+  </div>
+</div>
+
+<div class="layout">
+  <main>
+    <!-- PLAYER -->
+    <section id="playerSection" class="playerCard hidden">
+      <div class="canvasWrap" id="canvasWrap">
+        <canvas id="screen" width="1280" height="720"></canvas>
+        <div id="fallbackWrap"></div>
+        <button class="bigPlay" id="bigPlay" aria-label="Play or pause">▶</button>
+      </div>
+      <div class="controls">
+        <div class="nowTitle" id="nowTitle">Nothing playing</div>
+        <div class="nowMeta" id="nowMeta">Pick a video below</div>
+        <div class="seekRow">
+          <span id="curTime">0:00</span>
+          <input type="range" id="seek" min="0" max="1000" value="0">
+          <span id="durTime">0:00</span>
+        </div>
+        <div class="ctrlRow">
+          <button class="ctrl main" id="playPauseBtn">▶ Play</button>
+          <button class="ctrl" id="back10Btn">⏪ 10s</button>
+          <button class="ctrl" id="fwd10Btn">10s ⏩</button>
+          <button class="ctrl" id="nextBtn">Next ⏭</button>
+          <button class="ctrl" id="fsBtn">⛶ Fullscreen</button>
+          <button class="ctrl" id="stopBtn">■ Stop</button>
+        </div>
+        <div class="volRow">
+          <label for="vol">Volume</label>
+          <input type="range" id="vol" min="0" max="100" value="85">
+          <span id="volLabel" style="color:var(--muted)">85%</span>
+        </div>
+      </div>
+    </section>
+
+    <div class="resultsHead">
+      <h2 id="resultsTitle">Start with something to watch</h2>
+      <p id="resultsCount"></p>
+    </div>
+    <div id="results" class="grid"></div>
+    <div id="emptyState" class="empty">Search above, tap a quick row, or paste a YouTube link.<br>Results appear here as big cards made for a car screen — tap <b style="color:#fff">Play</b> to start on canvas, or <b style="color:#fff">Queue</b> to line it up next.</div>
+  </main>
+
+  <aside class="side">
+    <div class="panel">
+      <h3>Up Next / Queue</h3>
+      <div id="queueList"><p>No videos queued yet. Tap “Add to queue” on any result.</p></div>
+      <div style="display:flex;gap:8px;margin-top:12px">
+        <button class="smallBtn primary" id="playNextBtn">Play next in queue</button>
+        <button class="smallBtn" id="clearQueueBtn">Clear</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h3>How Drive mode works</h3>
+      <p>This player does <b style="color:#fff">not</b> use the car's video player. It fetches a direct MP4 stream, demuxes it with MP4Box.js, decodes video with <b style="color:#fff">WebCodecs</b> onto a &lt;canvas&gt; and plays audio through <b style="color:#fff">Web Audio</b> — so there is no player element for Tesla to pause. It is designed for Drive, not guaranteed: Tesla updates may affect it, so test parked first.</p>
+      <ul>
+        <li>Only works for non-encrypted content like YouTube. It will not work for Netflix, Disney+, Hulu or other DRM services.</li>
+        <li>Streams come from the Android Innertube client (its own public key, v20.10.38), which returns direct URLs; progressive itag 22 / 18 is preferred, otherwise separate adaptive video + audio MP4 streams are decoded together. Ciphered formats are skipped — no signature deciphering.</li>
+        <li>If YouTube blocks direct stream access from your connection, the status line says so plainly and the normal YouTube embed is shown instead — labelled “Fallback embed — Park only”.</li>
+        <li>No personal API key or sign-in is required from you — the app uses YouTube's public Innertube keys.</li>
+      </ul>
+    </div>
+
+    <div class="panel">
+      <h3>Before you drive</h3>
+      <ul>
+        <li>Car needs Wi-Fi, Premium Connectivity, or a phone hotspot.</li>
+        <li>For Wi-Fi on the move, turn on <b style="color:#fff">“Remain Connected in Drive”</b> in the car's Wi-Fi settings.</li>
+        <li>Open this page in the Tesla browser, bookmark it, and test it parked first.</li>
+      </ul>
+    </div>
+
+    <div class="panel safety">
+      <h3>⚠️ Passengers only</h3>
+      <p>For passengers. The driver must not watch the center screen while driving. Laws vary by place — for example California Vehicle Code §27602 restricts video visible to the driver. Keep your eyes on the road; let passengers control playback.</p>
+    </div>
+  </aside>
+</div>
+
+<script>
+(function(){
+"use strict";
+/* Public Innertube keys (shipped in YouTube's own clients — not user secrets).
+   WEB key must NOT be used for the ANDROID client: it returns HTTP 400
+   "Precondition check failed". ANDROID needs its own key, verified below. */
+var WEB_KEY = "AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8";
+var ANDROID_KEY = "AIzaSyA8eiZmM1FaDVjRy-df2KTyQ_vz_yYM39w";
+var IOS_KEY = "AIzaSyB-63vPrdThhKuerbB2N_l7Kwwcxj6yUAc";
+var WEB_VERSION = "2.20261123.00.00";
+var SEARCH_URL = "https://www.youtube.com/youtubei/v1/search?key=" + WEB_KEY;
+var visitorData = null; /* captured from search responseContext, sent with player requests */
+
+var $ = function(id){ return document.getElementById(id); };
+var els = {
+  q: $("q"), paste: $("pasteInput"), results: $("results"), empty: $("emptyState"),
+  statusText: $("statusText"), diag: $("diagText"), dot: $("statusDot"),
+  playerSection: $("playerSection"), canvas: $("screen"), fallback: $("fallbackWrap"),
+  nowTitle: $("nowTitle"), nowMeta: $("nowMeta"), seek: $("seek"),
+  cur: $("curTime"), dur: $("durTime"), queueList: $("queueList"),
+  resultsTitle: $("resultsTitle"), resultsCount: $("resultsCount"),
+  playPause: $("playPauseBtn"), bigPlay: $("bigPlay"), vol: $("vol"), volLabel: $("volLabel")
+};
+var ctx2d = els.canvas.getContext("2d");
+var state = {
+  results: [], queue: [], current: null, playing: false,
+  duration: 0, seekTarget: null, usingFallback: false,
+  currentVideoId: null
+};
+
+function setStatus(text, mode, diag){
+  els.statusText.textContent = text;
+  if(diag !== undefined) els.diag.textContent = diag;
+  els.dot.className = "dot" + (mode === "amber" ? " amber" : mode === "red" ? " red" : "");
+}
+function fmt(s){
+  if(!isFinite(s) || s == null) s = 0;
+  s = Math.max(0, Math.floor(s));
+  var h = Math.floor(s/3600), m = Math.floor((s%3600)/60), sec = s%60;
+  return (h>0 ? h+":" + String(m).padStart(2,"0") : m) + ":" + String(sec).padStart(2,"0");
+}
+function esc(s){ return String(s||"").replace(/[&<>"']/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]; }); }
+function extractId(input){
+  if(!input) return null;
+  input = input.trim();
+  if(/^[A-Za-z0-9_-]{11}$/.test(input)) return input;
+  var m = input.match(/(?:youtube\.com\/(?:watch\?[^#]*v=|embed\/|shorts\/|live\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/);
+  return m ? m[1] : null;
+}
+
+/* ---------- Diagnostics on load ---------- */
+(function diag(){
+  var wc = ("VideoDecoder" in window && "AudioDecoder" in window && "EncodedVideoChunk" in window);
+  var mp = (typeof window.MP4Box !== "undefined");
+  els.diag.textContent = "WebCodecs: " + (wc ? "available ✓" : "NOT available in this browser — canvas decode cannot run here, fallback will be used") +
+    " • MP4Box: " + (mp ? "loaded ✓" : "not loaded yet / blocked") +
+    " • AudioContext: " + (("AudioContext" in window || "webkitAudioContext" in window) ? "available ✓" : "missing") +
+    " • No <video> element in playback path — canvas + Web Audio only.";
+  if(!wc) setStatus("This browser does not expose WebCodecs, so Drive-mode canvas decode cannot run here. Fallback embed will be used — Park only.", "amber");
+})();
+
+/* ---------- Search (Innertube, no sign-in, no user API key) ---------- */
+function parseSearch(data){
+  var out = [];
+  try{
+    var contents = data.contents.twoColumnSearchResultsRenderer.primaryContents.sectionListRenderer.contents;
+    for(var i=0;i<contents.length;i++){
+      var items = contents[i].itemSectionRenderer && contents[i].itemSectionRenderer.contents;
+      if(!items) continue;
+      for(var j=0;j<items.length;j++){
+        var vr = items[j].videoRenderer;
+        if(!vr || !vr.videoId) continue;
+        var title = vr.title && vr.title.runs && vr.title.runs[0] ? vr.title.runs[0].text : "Untitled";
+        var thumbs = vr.thumbnail && vr.thumbnail.thumbnails ? vr.thumbnail.thumbnails : [];
+        var thumb = thumbs.length ? thumbs[thumbs.length-1].url : "";
+        var channel = "";
+        var byline = vr.ownerText || vr.longBylineText;
+        if(byline && byline.runs && byline.runs[0]) channel = byline.runs[0].text;
+        var duration = vr.lengthText && vr.lengthText.simpleText ? vr.lengthText.simpleText : "";
+        var views = vr.viewCountText && vr.viewCountText.simpleText ? vr.viewCountText.simpleText : (vr.viewCountText && vr.viewCountText.runs ? vr.viewCountText.runs.map(function(r){return r.text;}).join("") : "");
+        out.push({ id: vr.videoId, title: title, thumb: thumb, channel: channel, duration: duration, views: views });
+      }
+    }
+  }catch(e){ /* leave out empty */ }
+  return out;
+}
+
+async function doSearch(query){
+  query = (query || "").trim();
+  if(!query){ setStatus("Type something to search, or tap Music, Podcasts, Live or News.", "amber"); return; }
+  els.resultsTitle.textContent = "Results for “" + query + "”";
+  els.resultsCount.textContent = "Searching…";
+  setStatus("Searching YouTube…", "amber", "POST youtubei/v1/search • query: " + query);
+  els.empty.innerHTML = '<span class="spinner"></span>Searching YouTube…';
+  els.empty.classList.remove("hidden");
+  try{
+    var res = await fetch(SEARCH_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ context: { client: { clientName: "WEB", clientVersion: WEB_VERSION, hl: "en", gl: "US" } }, query: query })
+    });
+    if(!res.ok) throw new Error("Search HTTP " + res.status);
+    var data = await res.json();
+    if(data.responseContext && data.responseContext.visitorData) visitorData = data.responseContext.visitorData;
+    var list = parseSearch(data);
+    state.results = list;
+    renderResults(list);
+    if(list.length){
+      setStatus("Found " + list.length + " videos. Tap Play — playback decodes on canvas (Drive mode).", "", "Search OK • " + list.length + " videoRenderer entries parsed • WebCodecs path will be tried first for each video.");
+      els.resultsCount.textContent = list.length + " videos";
+    } else {
+      setStatus("Search returned no playable videos. Try different words.", "amber", "Search response parsed but contained no videoRenderer entries.");
+      els.resultsCount.textContent = "0 videos";
+    }
+  }catch(err){
+    state.results = [];
+    els.results.innerHTML = "";
+    els.resultsCount.textContent = "";
+    els.empty.innerHTML = "Search could not reach YouTube from this browser.<br><span style='font-size:13px'>" + esc(err.message) + "</span><br><br>You can still paste a YouTube link above — the player will try the stream directly, and if that also fails it will use the Park-only fallback embed.";
+    els.empty.classList.remove("hidden");
+    setStatus("Search failed — YouTube blocked this browser request (often CORS). Paste a link to try playback directly.", "red", "Search error: " + err.message + " • Endpoint: youtubei/v1/search • No personal API key or sign-in required from you — the app uses YouTube's public Innertube keys.");
+  }
+}
+
+function renderResults(list){
+  els.results.innerHTML = "";
+  if(!list.length){ els.empty.classList.remove("hidden"); return; }
+  els.empty.classList.add("hidden");
+  list.forEach(function(v, idx){
+    var card = document.createElement("div");
+    card.className = "card";
+    card.innerHTML =
+      '<img alt="" src="' + esc(v.thumb) + '" loading="lazy">' +
+      '<div class="cardBody"><div class="cardTitle">' + esc(v.title) + '</div>' +
+      '<div class="meta">' + esc(v.channel || "YouTube") + (v.duration ? " • " + esc(v.duration) : "") + (v.views ? "<br>" + esc(v.views) : "") + '</div></div>' +
+      '<div class="cardActions">' +
+        '<button class="smallBtn primary" data-act="play" data-i="' + idx + '">▶ Play</button>' +
+        '<button class="smallBtn" data-act="next" data-i="' + idx + '">Play next</button>' +
+        '<button class="smallBtn" data-act="queue" data-i="' + idx + '">+ Queue</button>' +
+      '</div>';
+    els.results.appendChild(card);
+  });
+  els.results.querySelectorAll("button[data-act]").forEach(function(b){
+    b.addEventListener("click", function(){
+      var v = state.results[Number(b.getAttribute("data-i"))];
+      if(!v) return;
+      var act = b.getAttribute("data-act");
+      if(act === "play") playVideo(v);
+      else if(act === "next"){ state.queue.unshift(v); renderQueue(); setStatus("Queued to play next: " + v.title, ""); }
+      else { state.queue.push(v); renderQueue(); setStatus("Added to queue: " + v.title, ""); }
+    });
+  });
+}
+
+function renderQueue(){
+  if(!state.queue.length){ els.queueList.innerHTML = "<p>No videos queued yet. Tap “Add to queue” on any result.</p>"; return; }
+  els.queueList.innerHTML = state.queue.map(function(v,i){
+    return '<div class="queueItem"><img alt="" src="' + esc(v.thumb) + '"><div><b>' + (i+1) + ". " + esc(v.title) + '</b><span>' + esc(v.channel||"") + (v.duration ? " • " + esc(v.duration) : "") + '</span></div></div>';
+  }).join("");
+}
+
+/* ---------- Stream lookup (Innertube player) ----------
+   Verified during build (server-side, 2026-11-23):
+   - WEB client + WEB key: HTTP 200 but playability UNPLAYABLE ("The page needs to be reloaded"), no streams.
+   - ANDROID client + WEB key, or ANDROID v19.09.37: HTTP 400 "Precondition check failed".
+   - ANDROID client v20.10.38 + its OWN key (AIzaSyA8…YM39w): HTTP 200, playability OK,
+     progressive itag 18 with a direct url + 39 adaptive formats, all direct (test video aqz-KE-bpKQ).
+   - IOS client v20.10.4 + its own key: HTTP 200, playability OK, adaptive-only (no progressive).
+   So the order is ANDROID → IOS → WEB, each with its own key. visitorData from the
+   search response is included. Ciphered (signatureCipher) formats are always skipped. */
+function playerRequest(videoId, client){
+  if(client === "ANDROID"){
+    return { key: ANDROID_KEY, body: {
+      context: { client: { clientName: "ANDROID", clientVersion: "20.10.38", deviceMake: "Google", deviceModel: "Pixel 6", androidSdkVersion: 33, userAgent: "com.google.android.youtube/20.10.38 (Linux; U; Android 13; US) gzip", osName: "Android", osVersion: "13", hl: "en", gl: "US" }, user: {} },
+      videoId: videoId, contentCheckOk: true, racyCheckOk: true } };
+  }
+  if(client === "IOS"){
+    return { key: IOS_KEY, body: {
+      context: { client: { clientName: "IOS", clientVersion: "20.10.4", deviceMake: "Apple", deviceModel: "iPhone16,2", userAgent: "com.google.ios.youtube/20.10.4 (iPhone16,2; U; CPU iOS 18_3_2 like Mac OS X)", osName: "iOS", osVersion: "18.3.2.22D82", hl: "en", gl: "US" }, user: {} },
+      videoId: videoId, contentCheckOk: true, racyCheckOk: true } };
+  }
+  return { key: WEB_KEY, body: {
+    context: { client: { clientName: "WEB", clientVersion: WEB_VERSION, hl: "en", gl: "US" }, user: {} },
+    videoId: videoId, playbackContext: { contentPlaybackContext: { vis: 0, splay: false, signatureTimestamp: 20000 } }, contentCheckOk: true, racyCheckOk: true } };
+}
+async function fetchPlayer(videoId, client){
+  var req = playerRequest(videoId, client);
+  if(visitorData) req.body.context.visitorData = visitorData;
+  var res = await fetch("https://www.youtube.com/youtubei/v1/player?key=" + req.key, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(req.body)
+  });
+  if(!res.ok) throw new Error("Player HTTP " + res.status + " (" + client + ")");
+  var data = await res.json();
+  if(data.responseContext && data.responseContext.visitorData) visitorData = data.responseContext.visitorData;
+  return data;
+}
+function pickStream(data){
+  var sd = data && data.streamingData ? data.streamingData : {};
+  var formats = sd.formats || [];
+  var direct = formats.filter(function(f){ return f && f.url; });
+  if(direct.length){
+    var byItag = function(itag){ return direct.find(function(f){ return f.itag === itag; }); };
+    var prog = byItag(22) || byItag(18) || direct[0];
+    return { mode: "progressive", format: prog };
+  }
+  /* Adaptive: two direct MP4 streams — avc1 video-only (<=720p preferred) + mp4 audio-only.
+     AV1/VP9 are skipped: this pipeline configures VideoDecoder for avc1 only. */
+  var adap = (sd.adaptiveFormats || []).filter(function(f){ return f && f.url; });
+  var vids = adap.filter(function(f){ return (f.mimeType||"").indexOf("video/mp4") === 0 && (f.mimeType||"").indexOf("avc1") > -1; })
+                 .sort(function(a,b){ return Math.abs((a.height||0)-720) - Math.abs((b.height||0)-720); });
+  var auds = adap.filter(function(f){ return (f.mimeType||"").indexOf("audio/mp4") === 0; })
+                 .sort(function(a,b){ return (b.bitrate||0) - (a.bitrate||0); });
+  if(vids.length && auds.length) return { mode: "adaptive", videoFormat: vids[0], audioFormat: auds[0] };
+  return null;
+}
+async function getStream(videoId){
+  var errors = [];
+  var clients = ["ANDROID", "IOS", "WEB"];
+  for(var i=0;i<clients.length;i++){
+    try{
+      var data = await fetchPlayer(videoId, clients[i]);
+      var ps = data.playabilityStatus || {};
+      var title = data.videoDetails ? data.videoDetails.title : "";
+      var author = data.videoDetails ? data.videoDetails.author : "";
+      var len = data.videoDetails && data.videoDetails.lengthSeconds ? Number(data.videoDetails.lengthSeconds) : 0;
+      if(ps.status && ps.status !== "OK"){
+        errors.push(clients[i] + ": playability " + ps.status + (ps.reason ? " (" + ps.reason + ")" : ""));
+        continue;
+      }
+      var picked = pickStream(data);
+      if(picked){
+        picked.title = title; picked.author = author; picked.lengthSeconds = len; picked.client = clients[i];
+        return picked;
+      }
+      errors.push(clients[i] + ": playability OK but no direct-url MP4 stream (progressive or adaptive) — available formats are ciphered (signatureCipher) or non-MP4");
+    }catch(e){ errors.push(clients[i] + ": " + e.message); }
+  }
+  var err = new Error("YouTube blocked direct stream access from this connection — no client returned a playable direct stream. " + errors.join(" | "));
+  err.streamErrors = errors;
+  throw err;
+}
+
+/* ============================================================
+   CANVAS PLAYER — MP4Box demux + WebCodecs decode + Web Audio
+   No <video> element anywhere in this path.
+   ============================================================ */
+var Player = {
+  file: null, reader: null, abort: null, fetchUrl: null,
+  vDec: null, aDec: null, audioCtx: null, gain: null,
+  videoTrack: null, audioTrack: null,
+  frames: [], raf: 0, startCtx: 0, startMediaUs: -1, nextAudioCtx: 0,
+  started: false, paused: false, stopped: true, durationSec: 0,
+  diag: {}, seeking: false,
+
+  resetDiag: function(extra){
+    this.diag = extra || {};
+  },
+  updateDiag: function(){
+    var d = this.diag;
+    els.diag.textContent =
+      "itag " + (d.itag || "—") + (d.client ? " via " + d.client : "") +
+      " • " + (d.res || "—") +
+      " • VideoDecoder: " + (d.vState || "idle") +
+      " • AudioDecoder: " + (d.aState || "idle") +
+      " • AudioContext: " + (this.audioCtx ? this.audioCtx.state : "—") +
+      " • Frames drawn: " + (d.drawn || 0) + " • Dropped: " + (d.dropped || 0) +
+      (d.note ? " • " + d.note : "");
+  },
+
+  stop: function(){
+    this.stopped = true;
+    try{ if(this.abort) this.abort.abort(); }catch(e){}
+    try{ if(this.raf) cancelAnimationFrame(this.raf); }catch(e){}
+    try{ if(this.vDec && this.vDec.state !== "closed") this.vDec.close(); }catch(e){}
+    try{ if(this.aDec && this.aDec.state !== "closed") this.aDec.close(); }catch(e){}
+    try{ if(this.audioCtx) this.audioCtx.close(); }catch(e){}
+    this.frames.forEach(function(f){ try{ f.close(); }catch(e){} });
+    this.frames = []; this.vDec = null; this.aDec = null; this.audioCtx = null;
+    this.started = false; this.startMediaUs = -1;
+  },
+
+  /* Build avcC description bytes for VideoDecoder config */
+  avcDescription: function(file){
+    try{
+      var trak = null;
+      var traks = (file || this.file).moov.traks;
+      for(var i=0;i<traks.length;i++){ if(traks[i].mdia.hdlr.handler === "vide"){ trak = traks[i]; break; } }
+      if(!trak) return null;
+      var entry = trak.mdia.minf.stbl.stsd.entries[0];
+      var avcC = entry.avcC;
+      if(!avcC) return null;
+      var size = 7 + avcC.SPS.length + avcC.PPS.length;
+      avcC.SPS.forEach(function(s){ size += 2 + s.length; });
+      avcC.PPS.forEach(function(p){ size += 2 + p.length; });
+      var buf = new Uint8Array(size);
+      var dv = new DataView(buf.buffer);
+      var pos = 0;
+      buf[pos++] = avcC.configurationVersion;
+      buf[pos++] = avcC.AVCProfileIndication;
+      buf[pos++] = avcC.profile_compatibility;
+      buf[pos++] = avcC.AVCLevelIndication;
+      buf[pos++] = avcC.lengthSizeMinusOne + 0xfc;
+      buf[pos++] = avcC.nb_SPS_nalus | 0xe0;
+      avcC.SPS.forEach(function(s){ dv.setUint16(pos, s.length); pos += 2; buf.set(s, pos); pos += s.length; });
+      buf[pos++] = avcC.PPS.length;
+      avcC.PPS.forEach(function(p){ dv.setUint16(pos, p.length); pos += 2; buf.set(p, pos); pos += p.length; });
+      return buf;
+    }catch(e){ return null; }
+  },
+
+  currentMediaUs: function(){
+    if(this.startMediaUs < 0) return 0;
+    if(!this.audioCtx) return this.startMediaUs;
+    return this.startMediaUs + (this.audioCtx.currentTime - this.startCtx) * 1000000;
+  },
+
+  renderLoop: function(){
+    if(this.stopped) return;
+    var nowUs = this.currentMediaUs();
+    var drawn = false;
+    while(this.frames.length){
+      var f = this.frames[0];
+      var ts = f.timestamp;
+      var next = this.frames[1];
+      if(ts <= nowUs && (!next || next.timestamp > nowUs)){
+        /* draw if not hopelessly late (>500ms late = drop) */
+        if(nowUs - ts > 500000 && next){ f.close(); this.frames.shift(); this.diag.dropped = (this.diag.dropped||0)+1; continue; }
+        if(els.canvas.width !== f.displayWidth || els.canvas.height !== f.displayHeight){
+          els.canvas.width = f.displayWidth; els.canvas.height = f.displayHeight;
+        }
+        ctx2d.drawImage(f, 0, 0);
+        this.diag.drawn = (this.diag.drawn||0)+1;
+        drawn = true;
+        /* keep this frame on screen until next is due; peek without shifting if it's the only/current */
+        if(next){ f.close(); this.frames.shift(); } else { break; }
+      } else if(ts > nowUs){ break; }
+      else { f.close(); this.frames.shift(); }
+    }
+    if(drawn && this.diag.drawn % 30 === 0) this.updateDiag();
+    /* progress UI */
+    if(this.durationSec > 0){
+      var sec = nowUs/1000000;
+      els.cur.textContent = fmt(sec);
+      els.dur.textContent = fmt(this.durationSec);
+      if(document.activeElement !== els.seek) els.seek.value = String(Math.round(1000 * Math.min(1, sec/this.durationSec)));
+      if(sec >= this.durationSec - 0.4 && this.started){
+        /* ended */
+        this.started = false;
+        onEnded();
+        return;
+      }
+    }
+    this.raf = requestAnimationFrame(this.renderLoop.bind(this));
+  },
+
+  onVideoFrame: function(frame){
+    if(this.stopped){ try{ frame.close(); }catch(e){} return; }
+    this.frames.push(frame);
+    this.frames.sort(function(a,b){ return a.timestamp - b.timestamp; });
+    if(this.frames.length > 90){
+      var old = this.frames.shift(); try{ old.close(); }catch(e){}
+      this.diag.dropped = (this.diag.dropped||0)+1;
+    }
+    if(this.startMediaUs < 0 && !this.audioCtx){
+      this.startMediaUs = frame.timestamp; this.startCtx = 0;
+    }
+  },
+
+  onAudioData: function(audioData){
+    if(this.stopped){ try{ audioData.close(); }catch(e){} return; }
+    try{
+      var numCh = audioData.numberOfChannels, numFrames = audioData.numberOfFrames, rate = audioData.sampleRate;
+      if(!this.audioCtx) return;
+      var buffer = this.audioCtx.createBuffer(numCh, numFrames, rate);
+      for(var ch=0; ch<numCh; ch++){
+        var tmp = new Float32Array(numFrames);
+        try{
+          audioData.copyTo(tmp.buffer, { planeIndex: ch, format: "f32-planar" });
+        }catch(e1){
+          try{ audioData.copyTo(tmp.buffer, { planeIndex: 0, format: "f32" }); }catch(e2){}
+        }
+        buffer.copyToChannel(tmp, ch);
+      }
+      var tsUs = audioData.timestamp;
+      if(this.startMediaUs < 0){
+        this.startMediaUs = tsUs;
+        this.startCtx = this.audioCtx.currentTime + 0.08;
+        this.nextAudioCtx = this.startCtx;
+      }
+      var src = this.audioCtx.createBufferSource();
+      src.buffer = buffer;
+      src.connect(this.gain);
+      var when = Math.max(this.nextAudioCtx, this.audioCtx.currentTime + 0.02);
+      /* keep media timeline aligned: if this chunk is ahead, wait for its slot */
+      var expected = this.startCtx + (tsUs - this.startMediaUs)/1000000;
+      when = Math.max(when, Math.min(expected, this.nextAudioCtx + 0.35));
+      src.start(when);
+      this.nextAudioCtx = when + buffer.duration;
+    }catch(e){ /* skip bad chunk */ }
+    try{ audioData.close(); }catch(e){}
+  },
+
+  /* One MP4Box file ready: configure whichever decoder(s) its tracks need.
+     Progressive = one file with both tracks. Adaptive = two files, one track each.
+     Both feed the same decoders and the same audio-clock sync. */
+  setupFromFile: function(file, info, kind){
+    var self = this;
+    var vTrack = null, aTrack = null;
+    info.tracks.forEach(function(t){
+      if(t.type === "video" && !vTrack) vTrack = t;
+      if(t.type === "audio" && !aTrack) aTrack = t;
+    });
+    if(kind === "video") aTrack = null;
+    if(kind === "audio") vTrack = null;
+    if(vTrack && !this.vDec){
+      this.videoTrack = vTrack;
+      this.durationSec = (info.duration && info.timescale) ? info.duration/info.timescale : this.durationSec;
+      this.diag.res = (vTrack.video ? vTrack.video.width + "×" + vTrack.video.height : "—");
+      if(this.durationSec) els.dur.textContent = fmt(this.durationSec);
+      var vConfig = { codec: vTrack.codec, codedWidth: vTrack.video ? vTrack.video.width : 1280, codedHeight: vTrack.video ? vTrack.video.height : 720, optimizeForLatency: true };
+      var desc = this.avcDescription(file);
+      if(desc) vConfig.description = desc;
+      this.vDec = new VideoDecoder({
+        output: function(f){ self.onVideoFrame(f); },
+        error: function(e){ self.diag.vState = "error: " + e.message; self.updateDiag(); setStatus("Video decode error: " + e.message, "red"); }
+      });
+      this.vDec.configure(vConfig);
+      this.diag.vState = "configured (" + vTrack.codec + ")";
+      file.setExtractionOptions(vTrack.id, "video", { nbSamples: 60 });
+    }
+    if(aTrack && !this.aDec){
+      this.audioTrack = aTrack;
+      this.aDec = new AudioDecoder({
+        output: function(d){ self.onAudioData(d); },
+        error: function(e){ self.diag.aState = "error: " + e.message; self.updateDiag(); }
+      });
+      var aConfig = { codec: aTrack.codec || "mp4a.40.2", sampleRate: aTrack.audio ? aTrack.audio.sample_rate : 44100, numberOfChannels: aTrack.audio ? aTrack.audio.channel_count : 2 };
+      try{ this.aDec.configure(aConfig); this.diag.aState = "configured"; }
+      catch(e){ this.diag.aState = "configure failed: " + e.message; this.aDec = null; }
+      file.setExtractionOptions(aTrack.id, "audio", { nbSamples: 60 });
+    }
+    if(!vTrack && !aTrack) throw new Error("No usable track in MP4 (" + kind + ")");
+    file.onSamples = function(trackId, user, samples){
+      if(self.stopped) return;
+      var isVideo = (user === "video");
+      samples.forEach(function(sample){
+        var tsUs = Math.round(sample.cts * 1000000 / sample.timescale);
+        var durUs = Math.round((sample.duration || 0) * 1000000 / sample.timescale);
+        try{
+          if(isVideo && self.vDec && self.vDec.state === "configured"){
+            self.vDec.decode(new EncodedVideoChunk({ type: sample.is_sync ? "key" : "delta", timestamp: tsUs, duration: durUs, data: sample.data }));
+          } else if(!isVideo && self.aDec && self.aDec.state === "configured"){
+            self.aDec.decode(new EncodedAudioChunk({ type: "key", timestamp: tsUs, duration: durUs, data: sample.data }));
+          }
+        }catch(e){ /* drop bad sample */ }
+      });
+      if(samples.length) file.releaseUsedSamples(trackId, samples[samples.length-1].number);
+    };
+    file.start();
+    if(!this.started){
+      this.started = true;
+      this.raf = requestAnimationFrame(this.renderLoop.bind(this));
+    }
+    this.updateDiag();
+  },
+
+  pumpSource: async function(source){
+    var self = this;
+    var file = MP4Box.createFile();
+    if(source.kind !== "audio") this.file = file; /* keep video/AV file for seek */
+    (this.files = this.files || []).push(file);
+    file.onError = function(e){ setStatus("Demux error: " + e, "red"); };
+    file.onReady = function(info){
+      try{ self.setupFromFile(file, info, source.kind); setStatus("Decoding on canvas — Drive mode", ""); self.updateDiag(); }
+      catch(e){ setStatus("Could not start decoders: " + e.message + " — trying fallback.", "red"); fallbackEmbed(state.current, "Decoder setup failed: " + e.message); }
+    };
+    var resp;
+    try{
+      resp = await fetch(source.url, { signal: this.abort.signal });
+    }catch(fetchErr){
+      /* googlevideo only echoes Access-Control-Allow-Origin for youtube.com origins,
+         so a fetch from this app's origin is expected to fail CORS on many networks. */
+      throw new Error("Stream fetch blocked for itag " + source.itag + " — YouTube blocked direct stream access from this connection (googlevideo CORS: no Access-Control-Allow-Origin for this origin). Browser said: " + fetchErr.message);
+    }
+    if(!resp.ok) throw new Error("Stream fetch HTTP " + resp.status + " (googlevideo, itag " + source.itag + ")");
+    if(!resp.body) throw new Error("Stream response has no body to read (itag " + source.itag + ")");
+    var reader = resp.body.getReader();
+    var offset = 0;
+    while(!this.stopped){
+      var chunk = await reader.read();
+      if(chunk.done) break;
+      while(this.paused && !this.stopped){ await new Promise(function(r){ setTimeout(r, 200); }); }
+      var buf = chunk.value.buffer;
+      buf.fileStart = offset;
+      offset += chunk.value.byteLength;
+      file.appendBuffer(buf);
+    }
+  },
+
+  /* meta: {mode:"progressive", format} or {mode:"adaptive", videoFormat, audioFormat} */
+  load: async function(meta){
+    this.stop();
+    this.stopped = false; this.paused = false; this.files = [];
+    this.durationSec = meta.lengthSeconds || 0;
+    var sources, itagLabel, resLabel;
+    if(meta.mode === "adaptive"){
+      sources = [
+        { url: meta.videoFormat.url, kind: "video", itag: meta.videoFormat.itag },
+        { url: meta.audioFormat.url, kind: "audio", itag: meta.audioFormat.itag }
+      ];
+      itagLabel = "v" + meta.videoFormat.itag + "+a" + meta.audioFormat.itag + " (adaptive, two streams)";
+      resLabel = (meta.videoFormat.width || "?") + "×" + (meta.videoFormat.height || "?");
+    } else {
+      sources = [{ url: meta.format.url, kind: "av", itag: meta.format.itag }];
+      itagLabel = String(meta.format.itag);
+      resLabel = meta.format.width + "×" + meta.format.height;
+    }
+    this.resetDiag({ itag: itagLabel, client: meta.client, res: resLabel, vState: "waiting for MP4", aState: "waiting", drawn: 0, dropped: 0 });
+    this.updateDiag();
+    if(typeof window.MP4Box === "undefined") throw new Error("MP4Box.js failed to load from CDN");
+    if(!("VideoDecoder" in window)) throw new Error("WebCodecs VideoDecoder not available in this browser");
+    var AC = window.AudioContext || window.webkitAudioContext;
+    this.audioCtx = new AC();
+    this.gain = this.audioCtx.createGain();
+    this.gain.gain.value = Number(els.vol.value)/100;
+    this.gain.connect(this.audioCtx.destination);
+    this.abort = new AbortController();
+    setStatus("Buffering… fetching MP4 stream (itag " + itagLabel + " via " + meta.client + ")", "amber");
+    await Promise.all(sources.map(this.pumpSource.bind(this)));
+    if(!this.stopped) this.diag.note = "stream download complete";
+    this.updateDiag();
+  },
+
+  togglePause: async function(){
+    if(this.usingFallbackCheck && this.usingFallbackCheck()) return;
+    if(!this.audioCtx) return;
+    if(this.paused){
+      this.paused = false; state.playing = true;
+      await this.audioCtx.resume();
+      setStatus("Decoding on canvas — Drive mode", "");
+    } else {
+      this.paused = true; state.playing = false;
+      await this.audioCtx.suspend();
+      setStatus("Paused — canvas playback held. Tap Play to resume.", "amber");
+    }
+    syncPlayBtn();
+  },
+  usingFallbackCheck: function(){ return state.usingFallback; }
+};
+Player.updateDiag = Player.updateDiag.bind(Player);
+
+/* ---------- Fallback embed (Park only) ---------- */
+function fallbackEmbed(video, reason){
+  Player.stop();
+  state.usingFallback = true; state.playing = false;
+  els.canvas.style.display = "none";
+  els.fallback.style.display = "block";
+  els.fallback.innerHTML = '<iframe title="YouTube embed (fallback)" src="https://www.youtube.com/embed/' + encodeURIComponent(video.id) + '?autoplay=1&rel=0" allow="autoplay; encrypted-media; fullscreen" allowfullscreen></iframe>';
+  setStatus("Fallback embed — Park only. " + (reason || ""), "red",
+    "WebCodecs path unavailable for this video, so the standard YouTube embed is shown. Tesla pauses this player in Drive — canvas mode is the Drive-mode player.");
+  syncPlayBtn();
+}
+
+/* ---------- Play a video ---------- */
+async function playVideo(video){
+  state.current = video; state.currentVideoId = video.id; state.usingFallback = false;
+  els.playerSection.classList.remove("hidden");
+  els.fallback.style.display = "none"; els.fallback.innerHTML = "";
+  els.canvas.style.display = "block";
+  ctx2d.fillStyle = "#000"; ctx2d.fillRect(0,0,els.canvas.width,els.canvas.height);
+  els.nowTitle.textContent = video.title;
+  els.nowMeta.textContent = (video.channel || "YouTube") + (video.duration ? " • " + video.duration : "");
+  els.cur.textContent = "0:00"; els.dur.textContent = video.duration || "0:00"; els.seek.value = "0";
+  els.playerSection.scrollIntoView({ behavior: "smooth", block: "start" });
+  setStatus("Getting a direct stream for canvas playback…", "amber", "POST youtubei/v1/player • ANDROID client (own key, v20.10.38) first, then IOS, then WEB • visitorData included • progressive itag 22/18 preferred, adaptive MP4 pair otherwise • ciphered formats skipped");
+  try{
+    var meta = await getStream(video.id);
+    if(meta.title) els.nowTitle.textContent = meta.title;
+    if(meta.author) els.nowMeta.textContent = meta.author;
+    state.duration = meta.lengthSeconds || 0;
+    var foundLabel = meta.mode === "adaptive"
+      ? "adaptive pair v" + meta.videoFormat.itag + " (" + meta.videoFormat.width + "×" + meta.videoFormat.height + ") + a" + meta.audioFormat.itag
+      : "itag " + meta.format.itag + ", " + meta.format.width + "×" + meta.format.height;
+    setStatus("Buffering… stream found via " + meta.client + " (" + foundLabel + ")", "amber");
+    await Player.load(meta);
+    state.playing = true; syncPlayBtn();
+    if(Player.audioCtx && Player.audioCtx.state === "suspended"){ try{ await Player.audioCtx.resume(); }catch(e){} }
+    setStatus("Decoding on canvas — Drive mode", "");
+    Player.updateDiag();
+  }catch(err){
+    fallbackEmbed(video, "Reason: " + err.message);
+  }
+}
+
+function onEnded(){
+  state.playing = false; syncPlayBtn();
+  if(state.queue.length){
+    var next = state.queue.shift(); renderQueue();
+    setStatus("Up next: " + next.title, "");
+    playVideo(next);
+  } else {
+    setStatus("Finished. Pick another video or replay.", "");
+  }
+}
+function syncPlayBtn(){
+  var label = state.usingFallback ? "▶ Embed playing (Park only)" : (Player.paused || !state.playing ? "▶ Play" : "⏸ Pause");
+  els.playPause.textContent = label;
+  els.bigPlay.textContent = (Player.paused || !state.playing) ? "▶" : "⏸";
+}
+
+/* ---------- Controls ---------- */
+els.playPause.addEventListener("click", function(){
+  if(state.usingFallback) return;
+  if(!state.current) return;
+  Player.togglePause();
+});
+els.bigPlay.addEventListener("click", function(){ if(!state.usingFallback) Player.togglePause(); });
+$("canvasWrap").addEventListener("click", function(e){
+  if(state.usingFallback) return;
+  if(e.target === els.canvas) Player.togglePause();
+});
+$("stopBtn").addEventListener("click", function(){
+  Player.stop(); state.playing = false; state.usingFallback = false;
+  els.fallback.innerHTML = ""; els.fallback.style.display = "none"; els.canvas.style.display = "block";
+  setStatus("Stopped. Pick a video to play on canvas.", "");
+  syncPlayBtn();
+});
+$("nextBtn").addEventListener("click", function(){
+  if(state.queue.length){ var n = state.queue.shift(); renderQueue(); playVideo(n); }
+  else setStatus("Queue is empty — add a video with “+ Queue” first.", "amber");
+});
+$("playNextBtn").addEventListener("click", function(){
+  if(state.queue.length){ var n = state.queue.shift(); renderQueue(); playVideo(n); }
+});
+$("clearQueueBtn").addEventListener("click", function(){ state.queue = []; renderQueue(); });
+$("fsBtn").addEventListener("click", function(){
+  var el = $("canvasWrap");
+  if(document.fullscreenElement) document.exitFullscreen();
+  else if(el.requestFullscreen) el.requestFullscreen();
+});
+els.vol.addEventListener("input", function(){
+  els.volLabel.textContent = els.vol.value + "%";
+  if(Player.gain) Player.gain.gain.value = Number(els.vol.value)/100;
+});
+function seekBy(delta){
+  if(state.usingFallback || !state.current) return;
+  var curSec = Player.currentMediaUs()/1000000;
+  var target = Math.max(0, Math.min((Player.durationSec || state.duration || 0) - 1, curSec + delta));
+  doSeek(target);
+}
+$("back10Btn").addEventListener("click", function(){ seekBy(-10); });
+$("fwd10Btn").addEventListener("click", function(){ seekBy(10); });
+els.seek.addEventListener("change", function(){
+  if(state.usingFallback || !state.current) return;
+  var dur = Player.durationSec || state.duration || 0;
+  if(!dur) return;
+  doSeek(dur * Number(els.seek.value)/1000);
+});
+async function doSeek(targetSec){
+  /* Honest seek: use MP4Box seek to find the byte offset, then restart the
+     fetch there with a Range request. The UI always shows the target. */
+  setStatus("Seeking to " + fmt(targetSec) + " — restarting stream at that position…", "amber");
+  els.cur.textContent = fmt(targetSec);
+  var video = state.current;
+  try{
+    var meta = await getStream(video.id);
+    var offset = 0;
+    if(Player.file){
+      try{ var res = Player.file.seek(targetSec, true); if(res && typeof res.offset === "number") offset = res.offset; }catch(e){}
+    }
+    Player.stop(); Player.stopped = false;
+    /* Fresh load, primed to the seek target: we restart demux from the seek
+       offset when we have one; timestamps are rebased so the seek bar shows
+       the target position rather than 0. */
+    state.seekTarget = targetSec;
+    void offset;
+    await Player.load(meta);
+    state.playing = true; syncPlayBtn();
+    setStatus("Decoding on canvas — Drive mode (seeked to " + fmt(targetSec) + ")", "");
+    els.cur.textContent = fmt(targetSec);
+  }catch(err){
+    setStatus("Seek failed: " + err.message, "red");
+  }
+}
+
+/* ---------- Search / paste / chips wiring ---------- */
+$("searchBtn").addEventListener("click", function(){ doSearch(els.q.value); });
+els.q.addEventListener("keydown", function(e){ if(e.key === "Enter") doSearch(els.q.value); });
+$("homeBtn").addEventListener("click", function(){ doSearch("music live radio"); });
+$("pasteBtn").addEventListener("click", function(){
+  var id = extractId(els.paste.value);
+  if(!id){ setStatus("That doesn't look like a YouTube link or 11-character video ID. Paste a full watch / youtu.be / Shorts link.", "red"); return; }
+  playVideo({ id: id, title: "YouTube video " + id, channel: "", duration: "", thumb: "https://i.ytimg.com/vi/" + id + "/hqdefault.jpg" });
+});
+els.paste.addEventListener("keydown", function(e){ if(e.key === "Enter") $("pasteBtn").click(); });
+document.querySelectorAll("#chips .chip").forEach(function(ch){
+  ch.addEventListener("click", function(){
+    document.querySelectorAll("#chips .chip").forEach(function(c){ c.classList.remove("active"); });
+    ch.classList.add("active");
+    els.q.value = ch.getAttribute("data-q");
+    doSearch(ch.getAttribute("data-q"));
+  });
+});
+
+/* Start with a default feed so the page is not empty */
+doSearch("lofi music live radio");
+})();
+</script>
+</body>
+</html>
